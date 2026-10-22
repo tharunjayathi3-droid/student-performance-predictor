@@ -25,15 +25,28 @@ Flask application for exploring student performance estimates, building a study 
 ## Run locally
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install --only-binary=:all: -r requirements.txt
 cp .env.example .env  # set a private SECRET_KEY before deployment
 python train_model.py
 python app.py
 ```
 
 Open <http://127.0.0.1:5002>, register an account, and sign in. `SECRET_KEY` should be a long random value in production. The development fallback in `app.py` is not suitable for deployment. For production, serve behind HTTPS and set `SESSION_COOKIE_SECURE=1` in the deployment configuration (cookie security configuration should be completed before public deployment).
+
+## Render deployment
+
+The repository pins Python 3.11.9 in both `runtime.txt` and `.python-version`. Render's default Python version can move independently of the dependency pins; the Python 3.14 default is incompatible with this project's NumPy 1.26.4, pandas 2.2.2, and scikit-learn 1.5.1 wheels. These exact dependency pins are retained because they are compatible with Python 3.11 and have prebuilt Linux wheels.
+
+- **Root directory:** repository root (the directory containing `requirements.txt`, `.python-version`, and `app.py`).
+- **Build command:** `pip install --only-binary=:all: -r requirements.txt`
+- **Start command:** `gunicorn app:app`
+- **Environment:** set a strong `SECRET_KEY`; set `SESSION_COOKIE_SECURE=1` when served over HTTPS.
+- If the Render service has a `PYTHON_VERSION` environment variable, set it to `3.11.9` or remove it so Render reads `.python-version`. The environment variable takes precedence over version files. Confirm the next build log says Python 3.11.9 and installs pandas from a `.whl`, not a source archive.
+
+`Procfile` already declares `web: gunicorn app:app`. `app.py` binds to `0.0.0.0` and reads Render's `PORT` when run directly. Gunicorn binds to Render's injected port automatically. Model and CSV paths are resolved relative to `app.py`, so they do not depend on the current working directory.
 
 ## Model and data
 
