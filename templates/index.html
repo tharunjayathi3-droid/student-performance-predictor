@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Student Performance Prediction System</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════════════════════════ SIDEBAR ══════════════════════════ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">SP</div>
+      <div>
+        <div class="brand-title">StudyPredict</div>
+        <div class="brand-sub">AI Academic Planner</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/learn/home" class="nav-item"><span>🏠</span> Home</a>
+      <a href="#dashboard" class="nav-item active"><span>📊</span> Dashboard</a>
+      <a href="#predict" class="nav-item"><span>🤖</span> Prediction</a>
+      <a href="/learn/subjects" class="nav-item"><span>📚</span> Subjects</a>
+      <a href="/learn/materials" class="nav-item"><span>🗂️</span> Materials</a>
+      <a href="/learn/game" class="nav-item"><span>🎮</span> Brain Boost</a>
+      <a href="/learn/progress" class="nav-item"><span>🏆</span> Progress</a>
+      <a href="/learn/ml-insights" class="nav-item"><span>🔬</span> Model insights</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="glass-card mini">
+        <div>🚀 Powered by</div>
+        <strong>Scikit-Learn ML</strong>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════ MAIN ══════════════════════════════ -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div>
+        <h1>Welcome back, {{ session.get('name', 'Student') }} 👋</h1>
+        <p class="muted">Let AI predict your performance and craft your perfect study plan.</p>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" title="Notifications">🔔</button>
+        <button class="icon-btn" id="themeToggle" title="Toggle theme">🌗</button>
+        <div class="avatar">S</div>
+        <form method="post" action="/logout"><button class="btn-ghost">Sign out</button></form>
+      </div>
+    </header>
+
+    <section class="panel glass"><strong>Demo model notice</strong><p class="muted">The bundled model uses synthetic data and has not been validated on real student records. Predictions are estimates, not guarantees or confidence intervals. Add your own inputs below to explore the demonstration.</p></section>
+
+    <!-- ── STAT CARDS (dashboard anchor) ────────────────────────── -->
+    <section class="stats" id="dashboard">
+      <div class="stat-card grad-1">
+        <div class="stat-label">Predicted Score</div>
+        <div class="stat-value" id="statScore">--</div>
+        <div class="stat-sub">out of 100</div>
+      </div>
+      <div class="stat-card grad-2">
+        <div class="stat-label">Predicted SGPA</div>
+        <div class="stat-value" id="statSgpa">--</div>
+        <div class="stat-sub">on 10 scale</div>
+      </div>
+      <div class="stat-card grad-3">
+        <div class="stat-label">Success Probability</div>
+        <div class="stat-value" id="statProb">--<small>%</small></div>
+        <div class="stat-sub">to reach goal</div>
+      </div>
+      <div class="stat-card grad-4">
+        <div class="stat-label">Performance Level</div>
+        <div class="stat-value small" id="statLevel">--</div>
+        <div class="stat-sub" id="statBadge"></div>
+      </div>
+    </section>
+
+    <!-- ── FORM + CHARTS ─────────────────────────────────────────── -->
+    <section class="grid-2" id="predict">
+
+      <!-- INPUT FORM -->
+      <div class="panel glass">
+        <h2>🧠 Enter Your Data</h2>
+        <form id="predictForm" class="form">
+
+          <!-- ACADEMIC: Previous Marks + Attendance only -->
+          <fieldset>
+            <legend>Academic</legend>
+            <label>Previous Marks (%)
+              <input type="number" name="previous_marks" min="0" max="100"
+                     placeholder="e.g. 72" value="72" required>
+            </label>
+            <label>Attendance (%)
+              <input type="number" name="attendance" min="0" max="100"
+                     placeholder="e.g. 82" value="82" required>
+            </label>
+          </fieldset>
+
+          <!-- DAILY HABITS: Study, Sleep + 3 new fields -->
+          <fieldset>
+            <legend>Daily Habits (hours / day)</legend>
+            <label>📚 Study Hours
+              <input type="number" step="0.5" name="study_hours"
+                     min="0" max="16" placeholder="e.g. 5" value="5" required>
+            </label>
+            <label>😴 Sleep Hours
+              <input type="number" step="0.5" name="sleep_hours"
+                     min="0" max="12" placeholder="e.g. 7" value="7" required>
+            </label>
+            <label>📱 Screen Time
+              <input type="number" step="0.5" name="screen_time"
+                     min="0" max="16" placeholder="e.g. 3" value="3" required>
+              <span class="field-hint">Phone, TV, gaming & social media combined</span>
+            </label>
+            <label>🏃 Sports / Physical Activity
+              <input type="number" step="0.5" name="sports_hours"
+                     min="0" max="8" placeholder="e.g. 1" value="1" required>
+              <span class="field-hint">Exercise, sport, outdoor activity</span>
+            </label>
+            <label>🎨 Other Activities
+              <input type="number" step="0.5" name="other_activities"
+                     min="0" max="12" placeholder="e.g. 2" value="2" required>
+              <span class="field-hint">Hobbies, part-time work, chores, etc.</span>
+            </label>
+          </fieldset>
+
+          <!-- GOAL: all original options + 2 new ones -->
+          <fieldset class="goal-fieldset">
+            <legend>Goal</legend>
+            <label>Target Score (%)
+              <select name="target_goal">
+                <option value="60">Pass All Subjects (60%)</option>
+                <option value="70">Score Above 70% (7 SGPA)</option>
+                <option value="75">Score Above 75%</option>
+                <option value="80" selected>Score Above 80%</option>
+                <option value="85">Score 85+ (8.5 SGPA)</option>
+                <option value="90">Score 90+ (9 SGPA)</option>
+                <option value="95">Score 95+ (9.5 SGPA)</option>
+              </select>
+            </label>
+          </fieldset>
+
+          <button type="submit" class="btn-primary" id="predictBtn">
+            <span class="btn-text">⚡ Predict Performance</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </form>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="panel glass">
+        <h2>📊 Live Charts</h2>
+        <div class="chart-wrap"><canvas id="chartTime"></canvas></div>
+        <div class="chart-wrap"><canvas id="chartGoal"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ── GOAL TRACKER ──────────────────────────────────────────── -->
+    <section class="panel glass" id="goal">
+      <h2>🎯 Goal Achievement Analysis</h2>
+      <p id="goalAnalysis" class="muted">
+        Submit your data to see how close you are to your target.
+      </p>
+      <div class="bars">
+        <div>
+          <span>Goal Progress</span>
+          <div class="bar"><div class="fill fill-blue"  id="barGoal"   style="width:0%"></div></div>
+        </div>
+        <div>
+          <span>Attendance</span>
+          <div class="bar"><div class="fill fill-cyan"  id="barAttend" style="width:0%"></div></div>
+        </div>
+        <div>
+          <span>Study Hours (target: 8h)</span>
+          <div class="bar"><div class="fill fill-green" id="barStudy"  style="width:0%"></div></div>
+        </div>
+        <div>
+          <span>Screen-Time Control (lower is better)</span>
+          <div class="bar"><div class="fill fill-warn"  id="barScreen" style="width:0%"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TIMETABLE ─────────────────────────────────────────────── -->
+    <section class="panel glass" id="timetable">
+      <h2>🗓️ AI Generated Timetable</h2>
+      <div id="timetable-list" class="timetable-list">
+        <p class="muted">Your personalized timetable will appear here after prediction.</p>
+      </div>
+    </section>
+
+    <!-- ── ANALYTICS ─────────────────────────────────────────────── -->
+    <section class="panel glass" id="analytics">
+      <h2>📈 Habit Analytics</h2>
+      <div class="chart-wrap tall"><canvas id="chartHabits"></canvas></div>
+    </section>
+
+    <!-- ── RECOMMENDATIONS ───────────────────────────────────────── -->
+    <section class="panel glass" id="recos">
+      <div class="row-between">
+        <h2>💡 AI Recommendations</h2>
+        <button class="btn-ghost" id="downloadBtn" disabled>⬇ Download PDF Report</button>
+      </div>
+      <div id="recos-list" class="recos">
+        <p class="muted">Predictions will generate personalised recommendations here.</p>
+      </div>
+    </section>
+
+    <footer class="foot muted">
+      Built with Flask + Scikit-Learn · Deployable free on Render
+    </footer>
+  </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
